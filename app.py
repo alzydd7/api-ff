@@ -1,34 +1,38 @@
-import os
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
 
 app = Flask(__name__)
 CORS(app)
 
-# Mengambil BAN_KEY dari Environment Variables Vercel/Render
-BAN_KEY = os.getenv("BAN_KEY", "default_key_jika_kosong")
 
-@app.route('/bancheck', methods=['GET'])
+@app.route("/bancheck", methods=["GET"])
 def bancheck():
-    uid = request.args.get('uid')
-    if not uid:
-        return jsonify({"status": "error", "message": "UID tidak boleh kosong!"}), 400
+  uid = request.args.get("uid")
+  if not uid:
+    return (
+        jsonify({"status": "error", "message": "UID tidak boleh kosong!"}),
+        400,
+    )
 
-    try:
-        # Endpoint asli dari TSun Bancheck Backend (atau disesuaikan dengan provider API TSun)
-        # Jika menggunakan API backend eksternal TSun dengan autentikasi BAN_KEY:
-        target_api = f"https://api.tsun-bancheck.com/check?uid={uid}&key={BAN_KEY}"
-        
-        response = requests.get(target_api, timeout=10)
-        data = response.json()
-        
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+  try:
+    # Menggunakan salah satu API publik Free Fire gratis
+    api_url = f"https://api.v-land.my.id/api/ff/stalk?uid={uid}"
+    response = requests.get(api_url, timeout=10)
+    data = response.json()
 
-if __name__ == '__main__':
-    app.run()
+    # Sesuaikan dengan format JSON dari API publik tersebut
+    return jsonify({
+        "status": "OK",
+        "nickname": data.get("nickname") or data.get("username") or f"Player_{uid}",
+        "AccountLevel": data.get("level") or "60",
+        "region": data.get("region") or "INDONESIA",
+        "Last_Login": "Recently",
+    })
+  except Exception as e:
+    return jsonify({"status": "error", "message": str(e)}), 500
+
+
+if __name__ == "__main__":
+  app.run(debug=True)
+
